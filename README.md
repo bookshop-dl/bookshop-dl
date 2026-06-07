@@ -16,3 +16,7 @@ The `bookshop-dl` tool can be used in two ways:
   * **Command Line Interface** - use the CLI to list and download books.
 
 You can download the app from the **Releases** page of this repository. For information on the CLI, see `scripts/README.md`.
+
+### macOS
+
+After downloading, drag **bookshop-dl** to Applications. The first time you open it, right-click the app → **Open** → **Open**. After that, you can open it normally from Applications or the Dock.
