@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Build installers
-        run: npm run build -w bookshop-lib && npm run dist:ci -w bookshop-download-app
+        run: npm run build -w bookshop-lib && npm run dist:ci -w bookshop-dl-app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false

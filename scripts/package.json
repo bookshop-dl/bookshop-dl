@@ -1,5 +1,5 @@
 {
-  "name": "bookshop-download-scripts",
+  "name": "bookshop-dl-scripts",
   "private": true,
   "type": "module",
   "scripts": {
