@@ -1,0 +1,19 @@
+{
+  "name": "bookshop-download-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "list-library": "tsx src/list-library.ts",
+    "download-lcpl": "tsx src/download-lcpl.ts",
+    "lcpl-to-epub": "tsx src/lcpl-to-epub.ts",
+    "lcp-to-clear-epub": "tsx src/lcp-to-clear-epub.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
