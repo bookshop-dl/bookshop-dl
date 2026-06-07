@@ -13,10 +13,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inflateRawSync } from "node:zlib";
 
-import { getToken } from "./auth.js";
 import type { LcpLicense } from "./client.js";
 
-const AUTH_HEADER = "bkshp-firebase-authorization";
 const AES_BLOCK = 16;
 const BASIC_PROFILE = "http://readium.org/lcp/basic-profile";
 
@@ -104,46 +102,32 @@ function decryptResource(
   return out;
 }
 
-async function downloadPublication(url: string, dest: string) {
-  const headers: Record<string, string> = {};
-  if (url.includes("bookshop.org")) {
-    headers[AUTH_HEADER] = `Bearer ${await getToken()}`;
-  }
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`Download failed (${res.status})`);
-  await writeFile(dest, Buffer.from(await res.arrayBuffer()));
-}
-
-function publicationLink(license: LcpLicense) {
-  const link = license.links?.find((entry) => entry.rel === "publication");
-  if (!link?.href) throw new Error("License has no publication URL");
-  return link;
+function publicationHash(license: LcpLicense) {
+  return license.links?.find((entry) => entry.rel === "publication")?.hash;
 }
 
 export async function buildLcpEpub(
   license: LcpLicense,
+  encryptedPath: string,
   outPath: string,
   skipHash = false,
 ) {
-  const pub = publicationLink(license);
+  const hash = publicationHash(license);
+  if (hash && !skipHash) {
+    const digest = createHash("sha256")
+      .update(await readFile(encryptedPath))
+      .digest("hex");
+    if (digest.toLowerCase() !== hash.toLowerCase()) {
+      throw new Error("Publication hash mismatch");
+    }
+  }
+
   const workDir = await mkdtemp(join(tmpdir(), "bookshop-lcp-"));
-  const encrypted = join(workDir, "encrypted.epub");
   const extractDir = join(workDir, "extracted");
 
   try {
-    await downloadPublication(pub.href, encrypted);
-
-    if (pub.hash && !skipHash) {
-      const hash = createHash("sha256")
-        .update(await readFile(encrypted))
-        .digest("hex");
-      if (hash.toLowerCase() !== pub.hash.toLowerCase()) {
-        throw new Error("Publication hash mismatch");
-      }
-    }
-
     await mkdir(extractDir, { recursive: true });
-    extractZip(encrypted, extractDir);
+    extractZip(encryptedPath, extractDir);
     await mkdir(join(extractDir, "META-INF"), { recursive: true });
     await writeFile(
       join(extractDir, "META-INF", "license.lcpl"),

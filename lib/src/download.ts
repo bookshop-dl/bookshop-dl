@@ -60,16 +60,17 @@ export async function downloadBook(
   onProgress?.(`Downloading ${title}...`);
   onProgress?.("Fetching license...");
   const device = await client.getDevice();
-  const [license, passphrase] = await Promise.all([
-    client.fetchLicense(book.checksum, device.id),
-    client.fetchUserKey(book.checksum),
-  ]);
+  const license = await client.fetchLicense(book.checksum, device.id);
+  onProgress?.("Fetching decryption key...");
+  const passphrase = await client.fetchUserKey(book.checksum);
 
   const workDir = await mkdtemp(join(tmpdir(), "bookshop-"));
+  const encryptedPath = join(workDir, "encrypted.epub");
   const lcpPath = join(workDir, "book.lcp.epub");
   try {
     onProgress?.("Downloading encrypted EPUB...");
-    await buildLcpEpub(license, lcpPath, skipHash);
+    await client.download(client.epubMobileUrl(book.checksum), encryptedPath);
+    await buildLcpEpub(license, encryptedPath, lcpPath, skipHash);
     onProgress?.("Decrypting LCP EPUB...");
     await mkdir(dirname(outPath), { recursive: true });
     await buildClearEpub(lcpPath, outPath, passphrase);
