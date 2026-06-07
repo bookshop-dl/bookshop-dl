@@ -1,6 +1,6 @@
 # Bookshop.org ebook download scripts
 
-Download DRM-free EPUBs from your Bookshop.org library on macOS.
+Download DRM-free EPUBs from your Bookshop.org library. Works on macOS, Windows, and Linux.
 
 ## Setup
 
@@ -10,7 +10,7 @@ npm install
 cp .env.example .env   # add your Bookshop credentials
 ```
 
-Requires **Node 20+**, `/usr/bin/unzip`, and `/usr/bin/zip`.
+Requires **Node 20+** only.
 
 ## Usage
 

@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import AdmZip from "adm-zip";
 import { createDecipheriv, createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import {
@@ -20,9 +20,14 @@ const AUTH_HEADER = "bkshp-firebase-authorization";
 const AES_BLOCK = 16;
 const BASIC_PROFILE = "http://readium.org/lcp/basic-profile";
 
-function run(cmd: string, args: string[], cwd?: string) {
-  const result = spawnSync(cmd, args, { cwd, stdio: "inherit" });
-  if (result.status !== 0) throw new Error(`Command failed: ${cmd}`);
+function extractZip(archivePath: string, destDir: string) {
+  new AdmZip(archivePath).extractAllTo(destDir, true);
+}
+
+function createZip(sourceDir: string, destPath: string) {
+  const zip = new AdmZip();
+  zip.addLocalFolder(sourceDir);
+  zip.writeZip(destPath);
 }
 
 export function safeName(name: string) {
@@ -123,14 +128,14 @@ export async function buildLcpEpub(
     }
 
     await mkdir(extractDir, { recursive: true });
-    run("/usr/bin/unzip", ["-q", encrypted, "-d", extractDir]);
+    extractZip(encrypted, extractDir);
     await mkdir(join(extractDir, "META-INF"), { recursive: true });
     await writeFile(
       join(extractDir, "META-INF", "license.lcpl"),
       JSON.stringify(license, null, 2),
     );
     if (existsSync(outPath)) await rm(outPath);
-    run("/usr/bin/zip", ["-qrX", outPath, "."], extractDir);
+    createZip(extractDir, outPath);
   } finally {
     await rm(workDir, { recursive: true, force: true });
   }
@@ -146,7 +151,7 @@ export async function buildClearEpub(
 
   try {
     await mkdir(extractDir, { recursive: true });
-    run("/usr/bin/unzip", ["-q", inputPath, "-d", extractDir]);
+    extractZip(inputPath, extractDir);
 
     const license = JSON.parse(
       await readFile(join(extractDir, "META-INF", "license.lcpl"), "utf8"),
@@ -172,7 +177,7 @@ export async function buildClearEpub(
     await unlink(join(extractDir, "META-INF", "encryption.xml"));
     await unlink(join(extractDir, "META-INF", "license.lcpl"));
     if (existsSync(outPath)) await unlink(outPath);
-    run("/usr/bin/zip", ["-qrX", outPath, "."], extractDir);
+    createZip(extractDir, outPath);
   } finally {
     await rm(workDir, { recursive: true, force: true });
   }
