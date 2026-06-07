@@ -18,3 +18,5 @@ npm run app:dist
 ```
 
 Installers are written to `app/release/`.
+
+Tagged pushes (`v*`) trigger `.github/workflows/release.yml`, which builds macOS (`.dmg`, `.zip`), Windows (`.exe`), and Linux (`.AppImage`, `.deb`) installers and publishes them to GitHub Releases.

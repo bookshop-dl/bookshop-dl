@@ -107,7 +107,12 @@ export class BookshopClient {
 
   async download(url: string, dest: string) {
     const res = await fetch(url, { headers: await this.authHeaders() });
-    if (!res.ok) throw new Error(`Download failed (${res.status}): ${url}`);
+    if (!res.ok) {
+      const detail = (await res.text()).slice(0, 200);
+      throw new Error(
+        `Download failed (${res.status})${detail ? `: ${detail}` : ""}`,
+      );
+    }
     await writeFile(dest, Buffer.from(await res.arrayBuffer()));
   }
 }

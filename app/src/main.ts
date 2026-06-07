@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,13 +13,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let client: BookshopClient | null = null;
 let books: DigitalBook[] = [];
 
+function appIconPath() {
+  return app.isPackaged
+    ? join(process.resourcesPath, "icon.png")
+    : join(__dirname, "..", "build", "icon.png");
+}
+
 function createWindow() {
+  const icon = appIconPath();
   const win = new BrowserWindow({
     width: 900,
     height: 640,
     minWidth: 640,
     minHeight: 480,
     title: "Bookshop Download",
+    ...(existsSync(icon) ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -30,6 +39,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin" && app.dock) {
+    const icon = appIconPath();
+    if (existsSync(icon)) app.dock.setIcon(icon);
+  }
   ipcMain.handle("login", async (_event, email: string, password: string) => {
     setCredentials({ email, password });
     client = new BookshopClient();

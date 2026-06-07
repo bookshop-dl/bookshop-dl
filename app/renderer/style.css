@@ -144,6 +144,16 @@ button.secondary {
   text-transform: uppercase;
 }
 
+.badge.drm-free {
+  background: color-mix(in srgb, var(--success) 18%, var(--panel));
+  color: var(--success);
+}
+
+.badge.lcp {
+  background: color-mix(in srgb, var(--accent) 15%, var(--panel));
+  color: var(--accent);
+}
+
 .book-actions {
   display: flex;
   flex-direction: column;

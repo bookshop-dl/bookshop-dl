@@ -11,6 +11,6 @@
     "list-library": "npm run list-library -w bookshop-download-scripts",
     "download-epub": "npm run download-epub -w bookshop-download-scripts",
     "app": "npm run start -w bookshop-download-app",
-    "app:dist": "npm run dist -w bookshop-download-app"
+    "app:dist": "npm run build -w bookshop-lib && npm run dist -w bookshop-download-app"
   }
 }

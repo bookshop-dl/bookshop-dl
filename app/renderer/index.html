@@ -65,7 +65,7 @@
           <div class="book-meta">
             <h2>{{ book.title }}</h2>
             <p>
-              <span class="badge">{{ book.type }}</span>
+              <span class="badge" :class="book.type">{{ book.type }}</span>
               SKU {{ book.sku }}
             </p>
           </div>

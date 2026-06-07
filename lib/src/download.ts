@@ -3,7 +3,16 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { BookshopClient, type DigitalBook } from "./client.js";
-import { buildClearEpub, buildLcpEpub, safeName } from "./epub.js";
+import {
+  assertEpubFile,
+  buildClearEpub,
+  buildLcpEpub,
+  safeName,
+} from "./epub.js";
+
+export function isDrmFreeBook(book: DigitalBook) {
+  return Boolean(book.product?.is_drm_free);
+}
 
 export interface DownloadOptions {
   outPath?: string;
@@ -33,14 +42,22 @@ export async function downloadBook(
     options.outPath ??
     join(options.contentDir ?? process.cwd(), `${safeName(title)}.epub`);
 
-  onProgress?.(`Downloading ${title}...`);
-
-  if (book.product?.is_drm_free) {
-    await mkdir(dirname(outPath), { recursive: true });
-    await client.download(client.drmFreeUrl(book.checksum), outPath);
+  if (isDrmFreeBook(book)) {
+    onProgress?.("Downloading DRM-free EPUB...");
+    try {
+      await mkdir(dirname(outPath), { recursive: true });
+      await client.download(client.drmFreeUrl(book.checksum), outPath);
+      await assertEpubFile(outPath);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to download DRM-free EPUB for "${title}": ${detail}`,
+      );
+    }
     return outPath;
   }
 
+  onProgress?.(`Downloading ${title}...`);
   onProgress?.("Fetching license...");
   const device = await client.getDevice();
   const [license, passphrase] = await Promise.all([
@@ -53,9 +70,10 @@ export async function downloadBook(
   try {
     onProgress?.("Downloading encrypted EPUB...");
     await buildLcpEpub(license, lcpPath, skipHash);
-    onProgress?.("Decrypting...");
+    onProgress?.("Decrypting LCP EPUB...");
     await mkdir(dirname(outPath), { recursive: true });
     await buildClearEpub(lcpPath, outPath, passphrase);
+    await assertEpubFile(outPath);
 
     if (keepIntermediates) {
       const base = join(dirname(outPath), safeName(title));

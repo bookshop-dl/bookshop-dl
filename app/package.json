@@ -1,5 +1,6 @@
 {
   "name": "bookshop-download-app",
+  "productName": "Bookshop Download",
   "private": true,
   "version": "1.0.0",
   "description": "Download DRM-free EPUBs from your Bookshop.org library",
@@ -9,7 +10,8 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.preload.json && node build.mjs",
     "start": "npm run build && electron .",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "dist:ci": "npm run build && electron-builder --publish onTag"
   },
   "dependencies": {
     "bookshop-lib": "*",
@@ -24,13 +26,24 @@
   "build": {
     "appId": "org.bookshop.download",
     "productName": "Bookshop Download",
+    "icon": "build/icon.png",
     "directories": {
       "output": "release"
     },
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
     "files": [
       "dist/**/*",
       "package.json"
     ],
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    },
     "mac": {
       "category": "public.app-category.utilities",
       "target": [

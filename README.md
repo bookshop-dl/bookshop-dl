@@ -24,4 +24,15 @@ npm run app          # open desktop app
 npm run app:dist     # build installers → app/release/
 ```
 
+## Releases
+
+Push a version tag to build installers for macOS, Windows, and Linux via GitHub Actions:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Installers are attached to the GitHub Release for that tag.
+
 See `scripts/README.md` and `app/README.md` for details.

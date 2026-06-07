@@ -30,6 +30,19 @@ function createZip(sourceDir: string, destPath: string) {
   zip.writeZip(destPath);
 }
 
+export async function assertEpubFile(path: string) {
+  const header = await readFile(path);
+  if (
+    header.length < 4 ||
+    header[0] !== 0x50 ||
+    header[1] !== 0x4b
+  ) {
+    throw new Error(
+      "Downloaded file does not look like an EPUB (expected a ZIP archive)",
+    );
+  }
+}
+
 export function safeName(name: string) {
   return name.replace(/[^\w.-]+/g, "_").replace(/_+/g, "_") || "book";
 }
