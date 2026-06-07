@@ -5,45 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'"
     />
     <title>Bookshop Download</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="login-view" class="panel">
-      <h1>Bookshop Download</h1>
-      <p class="subtitle">Sign in with your Bookshop.org account</p>
-      <form id="login-form">
-        <label>
-          Email
-          <input id="email" type="email" autocomplete="username" required />
-        </label>
-        <label>
-          Password
-          <input
-            id="password"
-            type="password"
-            autocomplete="current-password"
-            required
-          />
-        </label>
-        <button type="submit" id="login-btn">Sign in</button>
-      </form>
-      <p id="login-error" class="error" hidden></p>
+    <div v-scope v-cloak>
+      <div v-if="bridgeError" class="panel">
+        <h1>Bookshop Download</h1>
+        <p class="error">
+          App bridge failed to load. Try rebuilding with npm run app.
+        </p>
+      </div>
+
+      <div v-else-if="!signedIn" class="panel">
+        <h1>Bookshop Download</h1>
+        <p class="subtitle">Sign in with your Bookshop.org account</p>
+        <form @submit.prevent="login">
+          <label>
+            Email
+            <input
+              v-model="email"
+              type="email"
+              autocomplete="username"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              v-model="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <button type="submit" :disabled="loggingIn">
+            {{ loggingIn ? "Signing in..." : "Sign in" }}
+          </button>
+        </form>
+        <p v-if="loginError" class="error">{{ loginError }}</p>
+      </div>
+
+      <div v-else class="panel">
+        <header class="library-header">
+          <div>
+            <h1>Your library</h1>
+            <p class="subtitle">{{ bookCountLabel }}</p>
+          </div>
+          <button type="button" :disabled="refreshing" @click="refresh">
+            {{ refreshing ? "Refreshing..." : "Refresh" }}
+          </button>
+        </header>
+
+        <p v-if="books.length === 0" class="subtitle">No ebooks in your library.</p>
+
+        <article v-for="book in books" :key="book.checksum" class="book-card">
+          <div class="book-meta">
+            <h2>{{ book.title }}</h2>
+            <p>
+              <span class="badge">{{ book.type }}</span>
+              SKU {{ book.sku }}
+            </p>
+          </div>
+          <div class="book-actions">
+            <div class="action-buttons">
+              <button
+                type="button"
+                :disabled="isDownloading(book)"
+                @click="download(book)"
+              >
+                Download EPUB
+              </button>
+              <button
+                v-if="savedPath(book)"
+                type="button"
+                class="secondary"
+                @click="showInFolder(savedPath(book))"
+              >
+                Show in folder
+              </button>
+            </div>
+            <div
+              v-if="statusText(book)"
+              class="status"
+              :class="{ success: hasSavedPath(book) }"
+            >
+              {{ statusText(book) }}
+            </div>
+          </div>
+        </article>
+      </div>
     </div>
 
-    <div id="library-view" class="panel" hidden>
-      <header class="library-header">
-        <div>
-          <h1>Your library</h1>
-          <p id="book-count" class="subtitle"></p>
-        </div>
-        <button id="refresh-btn" type="button">Refresh</button>
-      </header>
-      <div id="book-list"></div>
-    </div>
-
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

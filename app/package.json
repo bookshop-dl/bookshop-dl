@@ -12,7 +12,8 @@
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {
-    "bookshop-lib": "*"
+    "bookshop-lib": "*",
+    "petite-vue": "^0.4.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
@@ -32,13 +33,22 @@
     ],
     "mac": {
       "category": "public.app-category.utilities",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb"]
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   }
 }
