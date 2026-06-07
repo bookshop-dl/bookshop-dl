@@ -2,3 +2,6 @@ content/
 node_modules/
 scripts/.env
 .DS_Store
+lib/dist/
+app/dist/
+app/release/

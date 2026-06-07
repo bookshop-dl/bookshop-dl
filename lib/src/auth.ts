@@ -1,17 +1,25 @@
-import { config } from "dotenv";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const scriptsDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-config({ path: join(scriptsDir, ".env"), quiet: true });
+export interface Credentials {
+  email: string;
+  password: string;
+}
 
 const FIREBASE_API_KEY = "AIzaSyDFN0MbkYiqXue7-7oRnLFuta2klSb5YRU";
 
+let session: Credentials | null = null;
+
+export function setCredentials(credentials: Credentials) {
+  session = credentials;
+}
+
+export function clearCredentials() {
+  session = null;
+}
+
 export async function getToken(): Promise<string> {
-  const email = process.env.BOOKSHOP_EMAIL?.trim();
-  const password = process.env.BOOKSHOP_PASSWORD;
+  const email = session?.email ?? process.env.BOOKSHOP_EMAIL?.trim();
+  const password = session?.password ?? process.env.BOOKSHOP_PASSWORD;
   if (!email || !password) {
-    throw new Error("Set BOOKSHOP_EMAIL and BOOKSHOP_PASSWORD in .env");
+    throw new Error("Bookshop email and password are required");
   }
 
   const res = await fetch(
@@ -29,7 +37,7 @@ export async function getToken(): Promise<string> {
   };
   if (!res.ok || !data.idToken) {
     throw new Error(
-      `Firebase sign-in failed: ${data.error?.message ?? res.status}`,
+      `Sign-in failed: ${data.error?.message ?? res.status}`,
     );
   }
   return data.idToken;

@@ -1,6 +1,8 @@
 import Table from "cli-table3";
+import { BookshopClient } from "bookshop-lib/client.js";
+import { loadEnv } from "bookshop-lib/load-env.js";
 
-import { BookshopClient } from "./client.js";
+loadEnv();
 
 try {
   const books = await new BookshopClient().listLibrary();

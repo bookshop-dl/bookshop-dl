@@ -27,7 +27,11 @@ export interface LcpLicense {
 export class BookshopClient {
   private token: string | null = null;
 
-  private async authHeaders(): Promise<Record<string, string>> {
+  resetToken() {
+    this.token = null;
+  }
+
+  private async authHeaders() {
     if (!this.token) this.token = await getToken();
     return { [AUTH_HEADER]: `Bearer ${this.token}` };
   }
@@ -56,9 +60,9 @@ export class BookshopClient {
   }
 
   listLibrary() {
-    return this.api<{ digital_books?: DigitalBook[] }>("/api/next/digitalbooks").then(
-      (data) => data.digital_books ?? [],
-    );
+    return this.api<{ digital_books?: DigitalBook[] }>(
+      "/api/next/digitalbooks",
+    ).then((data) => data.digital_books ?? []);
   }
 
   drmFreeUrl(checksum: string) {
@@ -81,7 +85,7 @@ export class BookshopClient {
 
     const device = await this.api<{ id: string }>(
       "/ebooks/m/devices/register",
-      { method: "POST", json: { device_name: "Bookshop CLI (macOS)" } },
+      { method: "POST", json: { device_name: "Bookshop Download" } },
     );
     await mkdir(join(homedir(), ".bookshop"), { recursive: true });
     await writeFile(DEVICE_FILE, JSON.stringify(device, null, 2));

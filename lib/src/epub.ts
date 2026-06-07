@@ -38,7 +38,10 @@ function decryptAes(key: Buffer, data: Buffer) {
   const iv = data.subarray(0, AES_BLOCK);
   const decipher = createDecipheriv("aes-256-cbc", key, iv);
   decipher.setAutoPadding(false);
-  const out = Buffer.concat([decipher.update(data.subarray(AES_BLOCK)), decipher.final()]);
+  const out = Buffer.concat([
+    decipher.update(data.subarray(AES_BLOCK)),
+    decipher.final(),
+  ]);
   const pad = out[out.length - 1]!;
   return out.subarray(0, out.length - pad);
 }
@@ -83,7 +86,7 @@ function decryptResource(
   const plain = decryptAes(key, data);
   const out = method === 8 ? inflateRawSync(plain) : plain;
   if (length !== undefined && out.length !== length) {
-    throw new Error(`Length mismatch for decrypted resource`);
+    throw new Error("Length mismatch for decrypted resource");
   }
   return out;
 }
@@ -118,7 +121,6 @@ export async function buildLcpEpub(
     await downloadPublication(pub.href, encrypted);
 
     if (pub.hash && !skipHash) {
-      const { createHash } = await import("node:crypto");
       const hash = createHash("sha256")
         .update(await readFile(encrypted))
         .digest("hex");

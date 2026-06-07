@@ -6,18 +6,16 @@
     "list-library": "tsx src/list-library.ts",
     "download-epub": "tsx src/download-epub.ts"
   },
+  "dependencies": {
+    "bookshop-lib": "*",
+    "cli-table3": "^0.6.5"
+  },
   "devDependencies": {
-    "@types/adm-zip": "^0.5.8",
     "@types/node": "^22.15.21",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "adm-zip": "^0.5.17",
-    "cli-table3": "^0.6.5",
-    "dotenv": "^17.4.2"
   }
 }

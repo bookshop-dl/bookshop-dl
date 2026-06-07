@@ -1,0 +1,44 @@
+{
+  "name": "bookshop-download-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Download DRM-free EPUBs from your Bookshop.org library",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.preload.json && node build.mjs",
+    "start": "npm run build && electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "bookshop-lib": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.8.3"
+  },
+  "build": {
+    "appId": "org.bookshop.download",
+    "productName": "Bookshop Download",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    }
+  }
+}

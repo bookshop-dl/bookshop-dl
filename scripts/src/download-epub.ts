@@ -1,10 +1,9 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { BookshopClient } from "./client.js";
-import { buildClearEpub, buildLcpEpub, safeName } from "./epub.js";
+import { BookshopClient } from "bookshop-lib/client.js";
+import { downloadBookByChecksum } from "bookshop-lib/download.js";
+import { loadEnv } from "bookshop-lib/load-env.js";
 
 const contentDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -12,6 +11,8 @@ const contentDir = join(
   "..",
   "content",
 );
+
+loadEnv();
 
 try {
   const args = process.argv.slice(2);
@@ -28,46 +29,13 @@ try {
     process.exit(1);
   }
 
-  const client = new BookshopClient();
-  const book = (await client.listLibrary()).find(
-    (entry) => entry.checksum === checksum,
-  );
-  if (!book) {
-    throw new Error(`Book not found: ${checksum}. Run npm run list-library.`);
-  }
-
-  const title = book.product?.title ?? book.checksum;
-  const outPath = out ?? join(contentDir, `${safeName(title)}.epub`);
-  console.error(`Title: ${title}`);
-
-  if (book.product?.is_drm_free) {
-    console.error("Downloading DRM-free EPUB...");
-    await mkdir(dirname(outPath), { recursive: true });
-    await client.download(client.drmFreeUrl(checksum), outPath);
-  } else {
-    const device = await client.getDevice();
-    const [license, passphrase] = await Promise.all([
-      client.fetchLicense(checksum, device.id),
-      client.fetchUserKey(checksum),
-    ]);
-
-    const workDir = await mkdtemp(join(tmpdir(), "bookshop-"));
-    const lcpPath = join(workDir, "book.lcp.epub");
-    try {
-      await buildLcpEpub(license, lcpPath, skipHash);
-      await mkdir(dirname(outPath), { recursive: true });
-      await buildClearEpub(lcpPath, outPath, passphrase);
-
-      if (keepIntermediates) {
-        const base = join(dirname(outPath), safeName(title));
-        await writeFile(`${base}.lcpl`, JSON.stringify(license, null, 2));
-        await writeFile(`${base}.passphrase.txt`, passphrase);
-        await writeFile(`${base}.lcp.epub`, await readFile(lcpPath));
-      }
-    } finally {
-      await rm(workDir, { recursive: true, force: true });
-    }
-  }
+  const outPath = await downloadBookByChecksum(new BookshopClient(), checksum, {
+    outPath: out,
+    contentDir,
+    keepIntermediates,
+    skipHash,
+    onProgress: (message) => console.error(message),
+  });
 
   console.log(outPath);
 } catch (err) {

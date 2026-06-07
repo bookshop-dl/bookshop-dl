@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Bookshop Download</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="login-view" class="panel">
+      <h1>Bookshop Download</h1>
+      <p class="subtitle">Sign in with your Bookshop.org account</p>
+      <form id="login-form">
+        <label>
+          Email
+          <input id="email" type="email" autocomplete="username" required />
+        </label>
+        <label>
+          Password
+          <input
+            id="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+        <button type="submit" id="login-btn">Sign in</button>
+      </form>
+      <p id="login-error" class="error" hidden></p>
+    </div>
+
+    <div id="library-view" class="panel" hidden>
+      <header class="library-header">
+        <div>
+          <h1>Your library</h1>
+          <p id="book-count" class="subtitle"></p>
+        </div>
+        <button id="refresh-btn" type="button">Refresh</button>
+      </header>
+      <div id="book-list"></div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
