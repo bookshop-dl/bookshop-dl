@@ -5,9 +5,11 @@
   "exports": {
     "./*.js": "./dist/*.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc"
+    "build": "tsc"
   },
   "dependencies": {
     "@faker-js/faker": "^9.8.0",

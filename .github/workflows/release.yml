@@ -30,8 +30,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --include=dev
 
+      - name: Prepare app workspace for electron-builder
+        run: mkdir -p app/node_modules
+
+      - name: Build lib
+        run: npm run build -w bookshop-lib
+
       - name: Build installers
-        run: npm run build -w bookshop-lib && npm run dist:ci -w bookshop-dl-app
+        working-directory: app
+        run: |
+          npm run build
+          npx electron-builder --publish onTag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"

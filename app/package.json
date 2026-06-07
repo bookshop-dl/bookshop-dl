@@ -5,14 +5,19 @@
   "version": "1.0.0",
   "author": "Bookshop DL <bookshop-dl@proton.me>",
   "description": "Download DRM-free EPUBs from your Bookshop.org library",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bookshop-dl/bookshop-dl.git"
+  },
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
+    "preinstall": "node -e \"require('fs').mkdirSync('node_modules',{recursive:true})\"",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.preload.json && node build.mjs",
     "start": "npm run build && electron .",
-    "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder",
-    "dist:ci": "npm run build && electron-builder --publish onTag"
+    "pack": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --dir",
+    "dist": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
+    "dist:ci": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish onTag"
   },
   "dependencies": {
     "bookshop-lib": "*",
@@ -20,14 +25,20 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
+    "app-builder-bin": "5.0.0-alpha.10",
     "electron": "33.4.11",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "26.0.12",
+    "cross-env": "^7.0.3",
     "typescript": "^5.8.3"
   },
   "build": {
     "appId": "org.bookshop.download",
     "productName": "bookshop-dl",
     "electronVersion": "33.4.11",
+    "npmRebuild": false,
+    "npmArgs": [
+      "--ignore-scripts"
+    ],
     "icon": "build/icon.png",
     "directories": {
       "output": "release"
@@ -44,14 +55,22 @@
     ],
     "publish": {
       "provider": "github",
+      "owner": "bookshop-dl",
+      "repo": "bookshop-dl",
       "releaseType": "release"
     },
     "mac": {
       "category": "public.app-category.utilities",
+      "identity": null,
+      "gatekeeperAssess": false,
+      "hardenedRuntime": false,
       "target": [
         "dmg",
         "zip"
       ]
+    },
+    "dmg": {
+      "sign": false
     },
     "win": {
       "target": [
