@@ -3,10 +3,16 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { getToken } from "./auth.js";
+import { generateMobileDeviceName } from "./device-name.js";
 
 const API = "https://bookshop.org";
 const AUTH_HEADER = "bkshp-firebase-authorization";
 const DEVICE_FILE = join(homedir(), ".bookshop", "device-registration.json");
+
+interface StoredDevice {
+  id: string;
+  device_name?: string;
+}
 
 export interface DigitalBook {
   checksum: string;
@@ -70,10 +76,14 @@ export class BookshopClient {
   }
 
   async getDevice() {
+    let deviceName = generateMobileDeviceName();
+
     try {
-      const stored = JSON.parse(await readFile(DEVICE_FILE, "utf8")) as {
-        id: string;
-      };
+      const stored = JSON.parse(
+        await readFile(DEVICE_FILE, "utf8"),
+      ) as StoredDevice;
+      if (stored.device_name) deviceName = stored.device_name;
+
       const valid = await this.api<{ is_valid: boolean }>(
         "/ebooks/m/devices/validateregistration",
         { method: "POST", json: { id: stored.id } },
@@ -85,11 +95,12 @@ export class BookshopClient {
 
     const device = await this.api<{ id: string }>(
       "/ebooks/m/devices/register",
-      { method: "POST", json: { device_name: "bookshop-dl" } },
+      { method: "POST", json: { device_name: deviceName } },
     );
     await mkdir(join(homedir(), ".bookshop"), { recursive: true });
-    await writeFile(DEVICE_FILE, JSON.stringify(device, null, 2));
-    return device;
+    const stored: StoredDevice = { id: device.id, device_name: deviceName };
+    await writeFile(DEVICE_FILE, JSON.stringify(stored, null, 2));
+    return stored;
   }
 
   fetchLicense(checksum: string, deviceId: string) {
