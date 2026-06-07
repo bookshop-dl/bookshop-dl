@@ -3,6 +3,7 @@
   "productName": "bookshop-dl",
   "private": true,
   "version": "1.0.0",
+  "author": "Bookshop DL <bookshop-dl@proton.me>",
   "description": "Download DRM-free EPUBs from your Bookshop.org library",
   "main": "dist/main.js",
   "type": "module",
@@ -19,13 +20,14 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
-    "electron": "^33.4.11",
+    "electron": "33.4.11",
     "electron-builder": "^25.1.8",
     "typescript": "^5.8.3"
   },
   "build": {
     "appId": "org.bookshop.download",
     "productName": "bookshop-dl",
+    "electronVersion": "33.4.11",
     "icon": "build/icon.png",
     "directories": {
       "output": "release"
