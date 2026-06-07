@@ -103,6 +103,49 @@ button.secondary {
   color: var(--error);
 }
 
+.notice {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.account-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.account-meta {
+  min-width: 0;
+}
+
+.account-line {
+  margin: 0;
+}
+
+.account-line + .account-line {
+  margin-top: 4px;
+}
+
+.account-line.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
 .library-header {
   display: flex;
   justify-content: space-between;
@@ -186,6 +229,19 @@ button.secondary {
 }
 
 @media (max-width: 640px) {
+  .account-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .account-actions {
+    justify-content: stretch;
+  }
+
+  .account-actions button {
+    flex: 1;
+  }
+
   .book-card {
     flex-direction: column;
     align-items: stretch;

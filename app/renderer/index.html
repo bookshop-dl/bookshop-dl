@@ -11,12 +11,17 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div v-scope v-cloak>
+    <div v-scope v-cloak @vue:mounted="bootstrap()">
       <div v-if="bridgeError" class="panel">
         <h1>bookshop-dl</h1>
         <p class="error">
           App bridge failed to load. Try rebuilding with npm run app.
         </p>
+      </div>
+
+      <div v-else-if="restoring" class="panel">
+        <h1>bookshop-dl</h1>
+        <p class="subtitle">Restoring session...</p>
       </div>
 
       <div v-else-if="!signedIn" class="panel">
@@ -46,20 +51,60 @@
           </button>
         </form>
         <p v-if="loginError" class="error">{{ loginError }}</p>
+        <p v-if="!sessionPersisted" class="notice">
+          Secure storage is unavailable on this system, so sign-in will not be
+          remembered after you quit the app.
+        </p>
       </div>
 
       <div v-else class="panel">
+        <section class="account-bar">
+          <div class="account-meta">
+            <p class="account-line">
+              Logged in as <strong>{{ accountEmail }}</strong>
+            </p>
+            <p class="account-line muted">
+              Device: <strong>{{ deviceName }}</strong>
+            </p>
+          </div>
+          <div class="account-actions">
+            <button
+              type="button"
+              class="secondary"
+              :disabled="reregistering"
+              @click="reregisterDevice"
+            >
+              {{ reregistering ? "Re-registering..." : "Re-register device" }}
+            </button>
+            <button type="button" class="secondary" @click="logout">
+              Log out
+            </button>
+          </div>
+        </section>
+        <p v-if="accountError" class="error">{{ accountError }}</p>
+        <p v-if="!sessionPersisted" class="notice">
+          Secure storage is unavailable, so you will need to sign in again after
+          quitting the app.
+        </p>
+
         <header class="library-header">
           <div>
             <h1>Your library</h1>
             <p class="subtitle">{{ bookCountLabel }}</p>
           </div>
-          <button type="button" :disabled="refreshing" @click="refresh">
+          <button
+            type="button"
+            :disabled="refreshing || libraryLoading"
+            @click="refresh"
+          >
             {{ refreshing ? "Refreshing..." : "Refresh" }}
           </button>
         </header>
 
-        <p v-if="books.length === 0" class="subtitle">No ebooks in your library.</p>
+        <p v-if="libraryLoading" class="subtitle">Loading your library...</p>
+        <p v-else-if="books.length === 0" class="subtitle">
+          No ebooks in your library.
+        </p>
 
         <article v-for="book in books" :key="book.checksum" class="book-card">
           <div class="book-meta">

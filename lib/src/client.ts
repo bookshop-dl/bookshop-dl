@@ -14,6 +14,11 @@ interface StoredDevice {
   device_name?: string;
 }
 
+export interface DeviceInfo {
+  id: string;
+  device_name: string;
+}
+
 export interface DigitalBook {
   checksum: string;
   sku: string;
@@ -154,6 +159,19 @@ export class BookshopClient {
     }
   }
 
+  private toDeviceInfo(stored: StoredDevice): DeviceInfo {
+    return {
+      id: stored.id,
+      device_name: stored.device_name ?? "Unknown Device",
+    };
+  }
+
+  async peekDevice(): Promise<DeviceInfo | null> {
+    const stored = await this.loadStoredDevice();
+    if (!stored?.id) return null;
+    return this.toDeviceInfo(stored);
+  }
+
   async getDevice() {
     const stored = await this.loadStoredDevice();
 
@@ -169,6 +187,16 @@ export class BookshopClient {
     const registered: StoredDevice = { id: device.id, device_name: deviceName };
     await this.saveDevice(registered);
     return registered;
+  }
+
+  async reregisterDevice(): Promise<DeviceInfo> {
+    const stored = await this.loadStoredDevice();
+    const deviceName = stored?.device_name ?? generateMobileDeviceName();
+    await this.clearStoredDevice();
+    const device = await this.registerDevice(deviceName);
+    const registered: StoredDevice = { id: device.id, device_name: deviceName };
+    await this.saveDevice(registered);
+    return this.toDeviceInfo(registered);
   }
 
   fetchLicense(checksum: string, deviceId: string) {
