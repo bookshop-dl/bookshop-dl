@@ -30,8 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --include=dev
 
+      - name: Set version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          npm version "$VERSION" --no-git-tag-version -w bookshop-dl-app
+
       - name: Prepare app workspace for electron-builder
-        run: mkdir -p app/node_modules
+        run: node -e "require('fs').mkdirSync('app/node_modules',{recursive:true})"
 
       - name: Build lib
         run: npm run build -w bookshop-lib

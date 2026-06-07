@@ -2,7 +2,7 @@
   "name": "bookshop-dl-app",
   "productName": "bookshop-dl",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "author": "Bookshop DL <bookshop-dl@proton.me>",
   "description": "Download DRM-free EPUBs from your Bookshop.org library",
   "repository": {
