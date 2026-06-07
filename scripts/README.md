@@ -1,112 +1,43 @@
 # Bookshop.org ebook download scripts
 
-TypeScript CLI tools reverse-engineered from the Bookshop Android app (`index.android.bundle`, v2.0.1). They fetch LCP licenses and assemble LCP EPUBs on macOS without the mobile app.
+Download DRM-free EPUBs from your Bookshop.org library on macOS.
 
 ## Setup
 
 ```bash
 cd scripts
 npm install
+cp .env.example .env   # add your Bookshop credentials
 ```
 
-Requires **Node 20+** and `/usr/bin/unzip` + `/usr/bin/zip` (default on macOS).
+Requires **Node 20+**, `/usr/bin/unzip`, and `/usr/bin/zip`.
 
-## Authentication
-
-The app uses Firebase Auth. Copy the example env file and add your credentials:
-
-```bash
-cp .env.example .env
-# edit .env
-```
-
-```bash
-# Option A: email + password (default)
-BOOKSHOP_EMAIL=you@example.com
-BOOKSHOP_PASSWORD="your-password"
-
-# Option B: paste a Firebase ID token (from browser devtools / app session)
-# BOOKSHOP_ID_TOKEN=eyJhbG...
-```
-
-`.env` is gitignored. You can still override with shell `export` if needed.
-
-## Download a DRM-free EPUB (one command)
+## Usage
 
 ```bash
 npm run list-library
 npm run download-epub -- <checksum>
 ```
 
-Output defaults to `../content/<title>.epub`. For LCP books this fetches the license and user key, builds the encrypted EPUB, decrypts locally, and writes a plain EPUB. DRM-free titles download directly.
+Output defaults to `../content/<title>.epub`.
 
 ```bash
 npm run download-epub -- <checksum> --out ../content/MyBook.epub
-npm run download-epub -- <checksum> --keep-intermediates   # also save .lcpl, passphrase, LCP epub
+npm run download-epub -- <checksum> --keep-intermediates
 ```
 
-## Step-by-step commands
+For LCP books, the script fetches the license and user key, downloads the encrypted EPUB, decrypts locally, and writes a plain EPUB. DRM-free titles download directly.
 
-The individual steps below are still available if you need them.
-
-### 1. List your library
+Credentials go in `scripts/.env` (gitignored):
 
 ```bash
-npm run list-library
+BOOKSHOP_EMAIL=you@example.com
+BOOKSHOP_PASSWORD="your-password"
 ```
 
-### 2. Download the `.lcpl` license
-
-```bash
-npm run download-lcpl -- <checksum>
-# optional: also save the LCP user key (passphrase) to a sidecar file
-npm run download-lcpl -- <checksum> --with-user-key
-```
-
-Output defaults to `./<checksum>.lcpl`. Device registration is stored in `~/.bookshop/device-registration.json`.
-
-### API endpoints (from decompilation)
-
-| Step | Method | Path |
-|------|--------|------|
-| Library | GET | `/api/next/digitalbooks` |
-| Register device | POST | `/ebooks/m/devices/register` |
-| Validate device | POST | `/ebooks/m/devices/validateregistration` |
-| License | GET | `/ebooks/m/contents/{checksum}/license?deviceRegistrationId={id}` |
-| User key | GET | `/ebooks/m/contents/{checksum}/key` |
-| Encrypted EPUB | GET | `/ebooks/{checksum}/resources/epub_mobile` |
-
-Auth header: `bkshp-firebase-authorization: Bearer <token>`
-
-### 3. Build an LCP EPUB
-
-Uses the publication URL inside the `.lcpl` (standard Readium LCP flow):
-
-```bash
-npm run lcpl-to-epub -- ./<checksum>.lcpl
-npm run lcpl-to-epub -- ./<checksum>.lcpl --out MyBook.epub
-```
-
-This downloads the encrypted publication, inserts `META-INF/license.lcpl`, and re-zips. The result is still **LCP-protected**, not DRM-free.
-
-### 4. Strip LCP DRM (local decrypt)
-
-If you have an LCP EPUB and the passphrase (from `--with-user-key` or Thorium), decrypt locally to a plain EPUB:
-
-```bash
-npm run lcp-to-clear-epub -- ./MyBook.epub
-# reads ./MyBook.passphrase.txt by default
-npm run lcp-to-clear-epub -- ./MyBook.epub --passphrase-file ./MyBook.passphrase.txt --out MyBook-clear.epub
-```
-
-This supports Readium **basic-profile** only (what Bookshop uses). It removes `META-INF/encryption.xml` and `META-INF/license.lcpl`, decrypts all listed resources, and re-zips.
-
-## 6. DRM-free titles
-
-If `list-library` shows `drm-free`, `download-epub` uses `GET /ebooks/{checksum}/resources/direct_download` automatically.
+Device registration is cached at `~/.bookshop/device-registration.json`.
 
 ## Notes
 
-- `assets/prod-license.lcpl` in the APK is an EDRLab **sample** license, not a purchased book.
-- API behavior may change; endpoints were recovered via `hermes-decomp` from the shipped bundle.
 - Personal use only; respect Bookshop terms and copyright.
+- API endpoints were recovered from the Bookshop Android app (v2.0.1).

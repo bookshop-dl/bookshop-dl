@@ -1,0 +1,179 @@
+import { spawnSync } from "node:child_process";
+import { createDecipheriv, createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { inflateRawSync } from "node:zlib";
+
+import { getToken } from "./auth.js";
+import type { LcpLicense } from "./client.js";
+
+const AUTH_HEADER = "bkshp-firebase-authorization";
+const AES_BLOCK = 16;
+const BASIC_PROFILE = "http://readium.org/lcp/basic-profile";
+
+function run(cmd: string, args: string[], cwd?: string) {
+  const result = spawnSync(cmd, args, { cwd, stdio: "inherit" });
+  if (result.status !== 0) throw new Error(`Command failed: ${cmd}`);
+}
+
+export function safeName(name: string) {
+  return name.replace(/[^\w.-]+/g, "_").replace(/_+/g, "_") || "book";
+}
+
+function decryptAes(key: Buffer, data: Buffer) {
+  const iv = data.subarray(0, AES_BLOCK);
+  const decipher = createDecipheriv("aes-256-cbc", key, iv);
+  decipher.setAutoPadding(false);
+  const out = Buffer.concat([decipher.update(data.subarray(AES_BLOCK)), decipher.final()]);
+  const pad = out[out.length - 1]!;
+  return out.subarray(0, out.length - pad);
+}
+
+function contentKey(license: LcpLicense, passphrase: string) {
+  const enc = license.encryption;
+  if (enc?.profile !== BASIC_PROFILE) {
+    throw new Error(`Unsupported LCP profile: ${enc?.profile ?? "missing"}`);
+  }
+
+  const userKey = createHash("sha256").update(passphrase, "utf8").digest();
+  const check = Buffer.from(enc!.user_key!.key_check!, "base64");
+  if (decryptAes(userKey, check).toString("utf8") !== license.id) {
+    throw new Error("Passphrase is incorrect");
+  }
+
+  return decryptAes(
+    userKey,
+    Buffer.from(enc!.content_key!.encrypted_value!, "base64"),
+  );
+}
+
+function parseEncryptionXml(xml: string) {
+  return [...xml.matchAll(/<EncryptedData[\s\S]*?<\/EncryptedData>/g)].flatMap(
+    (match) => {
+      const block = match[0];
+      const uri = block.match(/<CipherReference[^>]*URI="([^"]+)"/)?.[1];
+      if (!uri) return [];
+      const method = Number(block.match(/Method="(\d+)"/)?.[1] ?? 0);
+      const length = block.match(/OriginalLength="(\d+)"/)?.[1];
+      return [{ uri, method, length: length ? Number(length) : undefined }];
+    },
+  );
+}
+
+function decryptResource(
+  key: Buffer,
+  data: Buffer,
+  method: number,
+  length?: number,
+) {
+  const plain = decryptAes(key, data);
+  const out = method === 8 ? inflateRawSync(plain) : plain;
+  if (length !== undefined && out.length !== length) {
+    throw new Error(`Length mismatch for decrypted resource`);
+  }
+  return out;
+}
+
+async function downloadPublication(url: string, dest: string) {
+  const headers: Record<string, string> = {};
+  if (url.includes("bookshop.org")) {
+    headers[AUTH_HEADER] = `Bearer ${await getToken()}`;
+  }
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  await writeFile(dest, Buffer.from(await res.arrayBuffer()));
+}
+
+function publicationLink(license: LcpLicense) {
+  const link = license.links?.find((entry) => entry.rel === "publication");
+  if (!link?.href) throw new Error("License has no publication URL");
+  return link;
+}
+
+export async function buildLcpEpub(
+  license: LcpLicense,
+  outPath: string,
+  skipHash = false,
+) {
+  const pub = publicationLink(license);
+  const workDir = await mkdtemp(join(tmpdir(), "bookshop-lcp-"));
+  const encrypted = join(workDir, "encrypted.epub");
+  const extractDir = join(workDir, "extracted");
+
+  try {
+    await downloadPublication(pub.href, encrypted);
+
+    if (pub.hash && !skipHash) {
+      const { createHash } = await import("node:crypto");
+      const hash = createHash("sha256")
+        .update(await readFile(encrypted))
+        .digest("hex");
+      if (hash.toLowerCase() !== pub.hash.toLowerCase()) {
+        throw new Error("Publication hash mismatch");
+      }
+    }
+
+    await mkdir(extractDir, { recursive: true });
+    run("/usr/bin/unzip", ["-q", encrypted, "-d", extractDir]);
+    await mkdir(join(extractDir, "META-INF"), { recursive: true });
+    await writeFile(
+      join(extractDir, "META-INF", "license.lcpl"),
+      JSON.stringify(license, null, 2),
+    );
+    if (existsSync(outPath)) await rm(outPath);
+    run("/usr/bin/zip", ["-qrX", outPath, "."], extractDir);
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
+
+export async function buildClearEpub(
+  inputPath: string,
+  outPath: string,
+  passphrase: string,
+) {
+  const workDir = await mkdtemp(join(tmpdir(), "bookshop-clear-"));
+  const extractDir = join(workDir, "extracted");
+
+  try {
+    await mkdir(extractDir, { recursive: true });
+    run("/usr/bin/unzip", ["-q", inputPath, "-d", extractDir]);
+
+    const license = JSON.parse(
+      await readFile(join(extractDir, "META-INF", "license.lcpl"), "utf8"),
+    ) as LcpLicense;
+    const resources = parseEncryptionXml(
+      await readFile(join(extractDir, "META-INF", "encryption.xml"), "utf8"),
+    );
+    const key = contentKey(license, passphrase);
+
+    for (const resource of resources) {
+      const path = join(extractDir, resource.uri);
+      await writeFile(
+        path,
+        decryptResource(
+          key,
+          await readFile(path),
+          resource.method,
+          resource.length,
+        ),
+      );
+    }
+
+    await unlink(join(extractDir, "META-INF", "encryption.xml"));
+    await unlink(join(extractDir, "META-INF", "license.lcpl"));
+    if (existsSync(outPath)) await unlink(outPath);
+    run("/usr/bin/zip", ["-qrX", outPath, "."], extractDir);
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
