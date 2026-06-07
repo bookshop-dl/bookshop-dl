@@ -1,4 +1,4 @@
-# Bookshop.org CLI
+# bookshop-dl CLI
 
 Download DRM-free EPUBs from your Bookshop.org library. Shared logic lives in `../lib/`.
 

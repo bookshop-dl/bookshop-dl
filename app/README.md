@@ -1,4 +1,4 @@
-# Bookshop Download (Electron app)
+# bookshop-dl (Electron app)
 
 Cross-platform desktop app to sign in, browse your Bookshop.org library, and download DRM-free EPUBs.
 

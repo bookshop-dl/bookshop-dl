@@ -26,7 +26,7 @@ function createWindow() {
     height: 640,
     minWidth: 640,
     minHeight: 480,
-    title: "Bookshop Download",
+    title: "bookshop-dl",
     ...(existsSync(icon) ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, "preload.js"),

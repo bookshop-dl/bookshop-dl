@@ -85,7 +85,7 @@ export class BookshopClient {
 
     const device = await this.api<{ id: string }>(
       "/ebooks/m/devices/register",
-      { method: "POST", json: { device_name: "Bookshop Download" } },
+      { method: "POST", json: { device_name: "bookshop-dl" } },
     );
     await mkdir(join(homedir(), ".bookshop"), { recursive: true });
     await writeFile(DEVICE_FILE, JSON.stringify(device, null, 2));

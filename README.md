@@ -1,38 +1,18 @@
-# Bookshop Download
+# bookshop-dl
 
-Download DRM-free EPUBs from your [Bookshop.org](https://bookshop.org) library.
+## Disclaimer
 
-## Project layout
+This software is intended strictly for educational, archival, and lawful purposes only, such as ensuring compatibility between personal devices and archiving content you legally own. It is NOT designed, nor should it be used, to facilitate copyright infringement, piracy, or any illegal distribution of protected material. The user assumes all liability and responsibility for their actions. The author(s) shall NOT be held responsible or liable for any misuse, damage, or legal consequences arising from the use or distribution of this software. By utilizing or modifying this code, you agree to the terms of this disclaimer.
 
-| Path | Purpose |
-|------|---------|
-| `lib/` | Shared API client, LCP decrypt, download logic |
-| `scripts/` | CLI (`list-library`, `download-epub`) |
-| `app/` | Electron desktop app |
-| `content/` | Default CLI output (gitignored) |
+## Introduction
 
-## Quick start
+The `bookshop-dl` tools allow you to download books which you have legally purchased from bookshop.org as DRM-free EPUB files which can be used on any reading device/app. The mission of bookshop.org is to support independent bookstores, and this project is meant to further that mission by making the bookshop.org ebook shop more widely useful. Please support authors, bookstores, and bookshop.org by only using this tool to manage books which you have legally purchased.
 
-```bash
-npm install
-cp scripts/.env.example scripts/.env   # CLI credentials
+## Installation
 
-npm run list-library
-npm run download-epub -- <checksum>
+The `bookshop-dl` tool can be used in two ways:
 
-npm run app          # open desktop app
-npm run app:dist     # build installers → app/release/
-```
+  * **Desktop App** - install an app on your desktop and view/download books.
+  * **Command Line Interface** - use the CLI to list and download books.
 
-## Releases
-
-Push a version tag to build installers for macOS, Windows, and Linux via GitHub Actions:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Installers are attached to the GitHub Release for that tag.
-
-See `scripts/README.md` and `app/README.md` for details.
+You can download the app from the **Releases** page of this repository. For information on the CLI, see `scripts/README.md`.

@@ -7,20 +7,20 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'"
     />
-    <title>Bookshop Download</title>
+    <title>bookshop-dl</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div v-scope v-cloak>
       <div v-if="bridgeError" class="panel">
-        <h1>Bookshop Download</h1>
+        <h1>bookshop-dl</h1>
         <p class="error">
           App bridge failed to load. Try rebuilding with npm run app.
         </p>
       </div>
 
       <div v-else-if="!signedIn" class="panel">
-        <h1>Bookshop Download</h1>
+        <h1>bookshop-dl</h1>
         <p class="subtitle">Sign in with your Bookshop.org account</p>
         <form @submit.prevent="login">
           <label>
