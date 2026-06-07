@@ -1,10 +1,8 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { basename, resolve } from "node:path";
 
-import { resolveIdToken } from "./auth.js";
-import { AUTH_HEADER } from "./config.js";
+import { sanitizeFilename } from "./epub-utils.js";
+import { buildLcpEpub, publicationLink } from "./lcp-epub.js";
 import type { LcpLicense } from "./types.js";
 
 function usage(): never {
@@ -53,99 +51,19 @@ async function loadLicense(path: string): Promise<LcpLicense> {
   return JSON.parse(raw) as LcpLicense;
 }
 
-function publicationLink(license: LcpLicense) {
-  const link = license.links?.find((l) => l.rel === "publication");
-  if (!link?.href) {
-    throw new Error("License has no links[rel=publication] URL");
-  }
-  return link;
-}
-
-async function downloadFile(url: string, dest: string): Promise<void> {
-  const headers: Record<string, string> = {};
-  if (url.includes("bookshop.org")) {
-    const token = await resolveIdToken();
-    headers[AUTH_HEADER] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    throw new Error(`Failed to download publication (${res.status}): ${url}`);
-  }
-  const buf = Buffer.from(await res.arrayBuffer());
-  await writeFile(dest, buf);
-}
-
-async function sha256Hex(filePath: string): Promise<string> {
-  const { createHash } = await import("node:crypto");
-  const data = await readFile(filePath);
-  return createHash("sha256").update(data).digest("hex");
-}
-
-function run(cmd: string, args: string[], cwd?: string): void {
-  const result = spawnSync(cmd, args, { cwd, stdio: "inherit" });
-  if (result.status !== 0) {
-    throw new Error(`Command failed: ${cmd} ${args.join(" ")}`);
-  }
-}
-
-function sanitizeFilename(name: string): string {
-  return name.replace(/[^\w.-]+/g, "_").replace(/_+/g, "_") || "book";
-}
-
-async function buildLcpEpub(
-  license: LcpLicense,
-  licensePath: string,
-  outPath: string,
-  skipHash: boolean,
-): Promise<void> {
-  const pub = publicationLink(license);
-  const workDir = await mkdtemp(join(tmpdir(), "bookshop-lcp-"));
-  const encrypted = join(workDir, "encrypted.epub");
-  const extractDir = join(workDir, "extracted");
-
-  try {
-    console.error(`Downloading publication from ${pub.href}`);
-    await downloadFile(pub.href, encrypted);
-
-    if (pub.hash && !skipHash) {
-      const actual = await sha256Hex(encrypted);
-      if (actual.toLowerCase() !== pub.hash.toLowerCase()) {
-        throw new Error(
-          `Publication hash mismatch (expected ${pub.hash}, got ${actual})`,
-        );
-      }
-      console.error("Publication hash verified.");
-    }
-
-    await mkdir(extractDir, { recursive: true });
-    run("/usr/bin/unzip", ["-q", encrypted, "-d", extractDir]);
-
-    const metaInf = join(extractDir, "META-INF");
-    await mkdir(metaInf, { recursive: true });
-    const licenseDest = join(metaInf, "license.lcpl");
-    await writeFile(licenseDest, JSON.stringify(license, null, 2));
-
-    // zip from inside extractDir so paths are EPUB-relative
-    run("/usr/bin/zip", ["-qrX", outPath, "."], extractDir);
-
-    console.error(`Wrote LCP EPUB: ${outPath}`);
-    console.error(
-      `Passphrase hint: ${license.encryption?.user_key?.text_hint ?? "(see Bookshop account / user key API)"}`,
-    );
-    console.error(`Source license: ${licensePath}`);
-  } finally {
-    await rm(workDir, { recursive: true, force: true });
-  }
-}
-
 async function main() {
   const { input, out, skipHash } = parseArgs(process.argv.slice(2));
   const license = await loadLicense(input);
   const pub = publicationLink(license);
   const defaultName = sanitizeFilename(pub.title ?? basename(input, ".lcpl"));
   const outPath = resolve(out ?? `${defaultName}.epub`);
-  await buildLcpEpub(license, input, outPath, skipHash);
+
+  await buildLcpEpub(license, outPath, skipHash);
+  console.error(`Wrote LCP EPUB: ${outPath}`);
+  console.error(
+    `Passphrase hint: ${license.encryption?.user_key?.text_hint ?? "(see Bookshop account / user key API)"}`,
+  );
+  console.error(`Source license: ${input}`);
 }
 
 main().catch((err: unknown) => {

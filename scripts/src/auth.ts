@@ -1,3 +1,5 @@
+import "./load-env.js";
+
 import { FIREBASE_API_KEY } from "./config.js";
 
 interface FirebaseSignInResponse {

@@ -86,6 +86,10 @@ export class BookshopClient {
     return data.digital_books ?? [];
   }
 
+  drmFreeUrl(checksum: string): string {
+    return `${API_BASE_URL}${ENDPOINTS.drmFreeEpubByChecksum(checksum)}`;
+  }
+
   private async loadStoredDevice(): Promise<DeviceRegistration | null> {
     try {
       const raw = await readFile(DEVICE_FILE, "utf8");

@@ -13,26 +13,49 @@ Requires **Node 20+** and `/usr/bin/unzip` + `/usr/bin/zip` (default on macOS).
 
 ## Authentication
 
-The app uses Firebase Auth. Provide credentials via environment variables:
+The app uses Firebase Auth. Copy the example env file and add your credentials:
 
 ```bash
-# Option A: paste a Firebase ID token (from browser devtools / app session)
-export BOOKSHOP_ID_TOKEN="eyJhbG..."
-
-# Option B: email + password (uses Firebase REST API + embedded Web API key)
-export BOOKSHOP_EMAIL="you@example.com"
-export BOOKSHOP_PASSWORD="your-password"
+cp .env.example .env
+# edit .env
 ```
 
-## 1. List your library
+```bash
+# Option A: email + password (default)
+BOOKSHOP_EMAIL=you@example.com
+BOOKSHOP_PASSWORD="your-password"
 
-Find the **checksum** for the book you want:
+# Option B: paste a Firebase ID token (from browser devtools / app session)
+# BOOKSHOP_ID_TOKEN=eyJhbG...
+```
+
+`.env` is gitignored. You can still override with shell `export` if needed.
+
+## Download a DRM-free EPUB (one command)
+
+```bash
+npm run list-library
+npm run download-epub -- <checksum>
+```
+
+Output defaults to `../content/<title>.epub`. For LCP books this fetches the license and user key, builds the encrypted EPUB, decrypts locally, and writes a plain EPUB. DRM-free titles download directly.
+
+```bash
+npm run download-epub -- <checksum> --out ../content/MyBook.epub
+npm run download-epub -- <checksum> --keep-intermediates   # also save .lcpl, passphrase, LCP epub
+```
+
+## Step-by-step commands
+
+The individual steps below are still available if you need them.
+
+### 1. List your library
 
 ```bash
 npm run list-library
 ```
 
-## 2. Download the `.lcpl` license
+### 2. Download the `.lcpl` license
 
 ```bash
 npm run download-lcpl -- <checksum>
@@ -55,7 +78,7 @@ Output defaults to `./<checksum>.lcpl`. Device registration is stored in `~/.boo
 
 Auth header: `bkshp-firebase-authorization: Bearer <token>`
 
-## 3. Build an LCP EPUB
+### 3. Build an LCP EPUB
 
 Uses the publication URL inside the `.lcpl` (standard Readium LCP flow):
 
@@ -66,7 +89,7 @@ npm run lcpl-to-epub -- ./<checksum>.lcpl --out MyBook.epub
 
 This downloads the encrypted publication, inserts `META-INF/license.lcpl`, and re-zips. The result is still **LCP-protected**, not DRM-free.
 
-## 4. Strip LCP DRM (local decrypt)
+### 4. Strip LCP DRM (local decrypt)
 
 If you have an LCP EPUB and the passphrase (from `--with-user-key` or Thorium), decrypt locally to a plain EPUB:
 
@@ -78,23 +101,9 @@ npm run lcp-to-clear-epub -- ./MyBook.epub --passphrase-file ./MyBook.passphrase
 
 This supports Readium **basic-profile** only (what Bookshop uses). It removes `META-INF/encryption.xml` and `META-INF/license.lcpl`, decrypts all listed resources, and re-zips.
 
-## 5. Read the book
-
-1. Install [Thorium Reader](https://www.edrlab.org/software/thorium-reader/) (free, macOS).
-2. Open the `.epub` or drag it into Thorium.
-3. Enter your **passphrase** when prompted.
-   - If you used `--with-user-key`, the passphrase is in `<checksum>.passphrase.txt`.
-   - The license `text_hint` field may describe what to enter (often account-related).
-
-Thorium works offline after the first successful unlock.
-
 ## 6. DRM-free titles
 
-If `list-library` shows `drm-free`, Bookshop also exposes:
-
-`GET /ebooks/{checksum}/resources/direct_download`
-
-Those are plain EPUBs — use Bookshop’s official Download/Transfer in the app or website when available. These scripts target **LCP** books.
+If `list-library` shows `drm-free`, `download-epub` uses `GET /ebooks/{checksum}/resources/direct_download` automatically.
 
 ## Notes
 

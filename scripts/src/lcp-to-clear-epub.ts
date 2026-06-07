@@ -1,12 +1,7 @@
-import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
-import { inflateRawSync } from "node:zlib";
 
-import { parseEncryptionXml } from "./encryption-xml.js";
-import { decryptAes256Cbc, unlockContentKey } from "./lcp-crypto.js";
-import type { LcpLicense } from "./types.js";
+import { buildClearEpub } from "./clear-epub.js";
 
 function usage(): never {
   console.error(`Usage: npm run lcp-to-clear-epub -- <input.epub> [options]
@@ -60,13 +55,6 @@ function parseArgs(argv: string[]) {
   };
 }
 
-function run(cmd: string, args: string[], cwd?: string): void {
-  const result = spawnSync(cmd, args, { cwd, stdio: "inherit" });
-  if (result.status !== 0) {
-    throw new Error(`Command failed: ${cmd} ${args.join(" ")}`);
-  }
-}
-
 async function loadPassphrase(
   inputPath: string,
   passphrase?: string,
@@ -92,87 +80,6 @@ async function loadPassphrase(
   }
 }
 
-function decryptResource(
-  contentKey: Buffer,
-  encrypted: Buffer,
-  compressionMethod: number,
-  originalLength?: number,
-): Buffer {
-  const decrypted = decryptAes256Cbc(contentKey, encrypted);
-
-  if (compressionMethod === 0) {
-    if (originalLength !== undefined && decrypted.length !== originalLength) {
-      throw new Error(
-        `Decrypted length ${decrypted.length} does not match OriginalLength ${originalLength}`,
-      );
-    }
-    return decrypted;
-  }
-
-  if (compressionMethod === 8) {
-    const inflated = inflateRawSync(decrypted);
-    if (originalLength !== undefined && inflated.length !== originalLength) {
-      throw new Error(
-        `Inflated length ${inflated.length} does not match OriginalLength ${originalLength}`,
-      );
-    }
-    return inflated;
-  }
-
-  throw new Error(`Unsupported compression method: ${compressionMethod}`);
-}
-
-async function buildClearEpub(
-  inputPath: string,
-  outPath: string,
-  passphrase: string,
-  externalLcpl?: string,
-): Promise<void> {
-  const workDir = await mkdtemp(join(tmpdir(), "bookshop-clear-"));
-  const extractDir = join(workDir, "extracted");
-
-  try {
-    await mkdir(extractDir, { recursive: true });
-    run("/usr/bin/unzip", ["-q", inputPath, "-d", extractDir]);
-
-    const licensePath =
-      externalLcpl ?? join(extractDir, "META-INF", "license.lcpl");
-    const licenseRaw = await readFile(licensePath, "utf8");
-    const license = JSON.parse(licenseRaw) as LcpLicense;
-
-    const encryptionPath = join(extractDir, "META-INF", "encryption.xml");
-    const encryptionXml = await readFile(encryptionPath, "utf8");
-    const encryptedResources = parseEncryptionXml(encryptionXml);
-
-    if (encryptedResources.length === 0) {
-      throw new Error("No encrypted resources found in META-INF/encryption.xml");
-    }
-
-    console.error(`Unlocking content key (${encryptedResources.length} encrypted resources)...`);
-    const contentKey = unlockContentKey(license, passphrase);
-
-    for (const resource of encryptedResources) {
-      const resourcePath = join(extractDir, resource.uri);
-      const encrypted = await readFile(resourcePath);
-      const clear = decryptResource(
-        contentKey,
-        encrypted,
-        resource.compressionMethod,
-        resource.originalLength,
-      );
-      await writeFile(resourcePath, clear);
-    }
-
-    await unlink(encryptionPath);
-    await unlink(licensePath);
-
-    run("/usr/bin/zip", ["-qrX", outPath, "."], extractDir);
-    console.error(`Wrote DRM-free EPUB: ${outPath}`);
-  } finally {
-    await rm(workDir, { recursive: true, force: true });
-  }
-}
-
 async function main() {
   const { input, out, passphrase, passphraseFile, lcpl } = parseArgs(
     process.argv.slice(2),
@@ -186,6 +93,7 @@ async function main() {
     out ?? join(dirname(input), `${basename(input, ".epub")}.clear.epub`);
 
   await buildClearEpub(input, outPath, resolvedPassphrase, lcpl);
+  console.error(`Wrote DRM-free EPUB: ${outPath}`);
 }
 
 main().catch((err: unknown) => {

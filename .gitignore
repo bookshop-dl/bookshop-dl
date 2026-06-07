@@ -1,3 +1,4 @@
 content/
 node_modules/
+scripts/.env
 .DS_Store
